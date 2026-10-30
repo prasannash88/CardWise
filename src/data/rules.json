@@ -1,0 +1,239 @@
+{
+  "version": "2026-10-30",
+  "notes": "Starter catalogue from SPEC.md (issuer pages and review sites, Oct 2026). Verify every figure against the bank's latest MITC. Reward rates marked 'estimate' are best guesses; edit them here, no code change needed.",
+  "categories": [
+    "other", "online_shopping", "shopping_partners", "groceries", "dining", "travel", "entertainment",
+    "upi", "fuel", "rent", "utilities", "insurance", "emi", "wallet_load", "government", "education",
+    "tata_neu_app", "tata_brands", "adani_one", "makemytrip", "scapia_app", "cred", "uni_store"
+  ],
+  "merchant_map": [
+    { "match": ["tata neu", "tataneu", "neupass"], "category": "tata_neu_app" },
+    { "match": ["bigbasket", "croma", "westside", "taj", "tanishq", "titan", "air india", "1mg", "tata cliq", "zudio", "qmin", "starbucks"], "category": "tata_brands" },
+    { "match": ["adani one", "adanione", "adani airport"], "category": "adani_one" },
+    { "match": ["makemytrip", "make my trip", "mmt", "goibibo"], "category": "makemytrip" },
+    { "match": ["scapia"], "category": "scapia_app" },
+    { "match": ["cred"], "category": "cred" },
+    { "match": ["uni store", "uni cards"], "category": "uni_store" },
+    { "match": ["amazon", "flipkart", "myntra", "ajio", "nykaa"], "category": "shopping_partners" },
+    { "match": ["swiggy", "zomato", "restaurant", "cafe", "eatsure", "dominos", "mcdonald"], "category": "dining" },
+    { "match": ["blinkit", "zepto", "instamart", "dmart", "grofers", "jiomart", "more retail"], "category": "groceries" },
+    { "match": ["indian oil", "iocl", "hpcl", "bpcl", "bharat petroleum", "hindustan petroleum", "shell", "petrol", "fuel", "nayara"], "category": "fuel" },
+    { "match": ["rent", "nobroker", "housing.com", "redgiraffe"], "category": "rent" },
+    { "match": ["electricity", "bescom", "tneb", "msedcl", "airtel", "jio", "vodafone", "vi ", "bsnl", "broadband", "gas bill", "water bill", "dth", "tata play"], "category": "utilities" },
+    { "match": ["insurance", "lic", "policybazaar", "hdfc life", "icici pru", "star health"], "category": "insurance" },
+    { "match": ["paytm wallet", "amazon pay balance", "wallet load", "phonepe wallet", "mobikwik"], "category": "wallet_load" },
+    { "match": ["irctc", "indigo", "vistara", "akasa", "spicejet", "uber", "ola", "rapido", "cleartrip", "yatra", "ixigo", "agoda", "booking.com", "airbnb", "oyo"], "category": "travel" },
+    { "match": ["bookmyshow", "pvr", "inox", "netflix", "hotstar", "spotify", "prime video"], "category": "entertainment" },
+    { "match": ["upi"], "category": "upi" }
+  ],
+  "cards": [
+    {
+      "id": "scapia_federal",
+      "name": "Scapia Federal Bank",
+      "bank": "Federal Bank",
+      "issuer_sms_names": ["federal", "scapia"],
+      "network": "Visa + RuPay",
+      "annual_fee": 0,
+      "fee_note": "Lifetime free",
+      "fee_waiver_spend": null,
+      "reward": {
+        "currency": "Scapia Coins",
+        "per_amount": 100,
+        "rupee_value": 0.2,
+        "rounding": "floor",
+        "rates": { "default": 10, "scapia_app": 20 },
+        "excluded_categories": ["fuel", "rent", "insurance", "utilities", "wallet_load", "emi", "government"],
+        "caps": [],
+        "note": "5 Scapia Coins = Re 1; coins redeem only on Scapia travel. Rates per Rs 100 are estimates."
+      },
+      "lounge": [
+        { "type": "domestic", "count": null, "period": "cycle", "note": "Unlimited domestic (one airport privilege per cycle)" }
+      ],
+      "spend_gate": { "amount": 20000, "window": "billing_cycle", "unlocks": "next_period", "note": "Raised from Rs 10,000 on 27 Feb 2026" },
+      "milestones": [],
+      "perks": ["Zero forex markup"],
+      "watch_outs": ["No coins on fuel, rent, insurance, utilities", "Coins redeem only on Scapia travel"],
+      "benefits_url": "https://scapia.cards",
+      "source_url": "https://cardadvisor.in/changes/2026-W09",
+      "verified_on": "2026-10-30"
+    },
+    {
+      "id": "mmt_icici",
+      "name": "MakeMyTrip ICICI",
+      "bank": "ICICI Bank",
+      "issuer_sms_names": ["icici"],
+      "network": "Mastercard + RuPay",
+      "annual_fee": 999,
+      "fee_note": "Rs 999 + GST",
+      "fee_waiver_spend": null,
+      "reward": {
+        "currency": "myCash",
+        "per_amount": 100,
+        "rupee_value": 1,
+        "rounding": "floor",
+        "rates": { "default": 1, "makemytrip": 3 },
+        "excluded_categories": ["fuel", "rent", "wallet_load", "government"],
+        "caps": [],
+        "note": "1 myCash = Re 1, never expires. Rates are estimates; check MITC."
+      },
+      "lounge": [
+        { "type": "domestic", "count": 2, "period": "quarter", "note": "8 per year, 2 per quarter" },
+        { "type": "international", "count": 1, "period": "year" }
+      ],
+      "spend_gate": { "amount": 75000, "window": "calendar_quarter", "unlocks": "next_period", "note": "From 1 Jul 2026; lounge for primary card only" },
+      "milestones": [ { "label": "Rs 1,000 MMT voucher yearly", "spend": null } ],
+      "perks": ["MMTBLACK Gold", "BookMyShow 25% off 2nd ticket (max Rs 150), once a month per network"],
+      "watch_outs": ["Lounge for primary card only", "Shares ICICI's Rs 75,000 gate rule with Adani One (separate targets)"],
+      "benefits_url": "https://www.icicibank.com/personal-banking/cards/credit-card/makemytrip-icici-bank-credit-card",
+      "source_url": "https://savesage.club/credit-card/icici-makemytrip-rupay/lounge-access",
+      "verified_on": "2026-10-30"
+    },
+    {
+      "id": "adani_one_icici_platinum",
+      "name": "Adani One ICICI Platinum",
+      "bank": "ICICI Bank",
+      "issuer_sms_names": ["icici"],
+      "network": "Visa",
+      "annual_fee": 750,
+      "fee_note": "Rs 750 + GST",
+      "fee_waiver_spend": 300000,
+      "reward": {
+        "currency": "Adani Reward Points",
+        "per_amount": 100,
+        "rupee_value": 1,
+        "rounding": "floor",
+        "rates": { "default": 1, "adani_one": 3 },
+        "excluded_categories": ["fuel", "rent", "wallet_load", "government"],
+        "caps": [],
+        "note": "3% on Adani One app and Adani airports, ~1% elsewhere"
+      },
+      "lounge": [
+        { "type": "domestic", "count": 2, "period": "quarter", "note": "Premium lounge upgrades at Adani airports" }
+      ],
+      "spend_gate": { "amount": 75000, "window": "calendar_quarter", "unlocks": "next_period", "note": "From 1 Jul 2026" },
+      "milestones": [ { "label": "Welcome flight voucher", "spend": null } ],
+      "perks": ["Premium lounge upgrades at Adani airports"],
+      "watch_outs": ["Shares ICICI's Rs 75,000 gate with MMT, so two separate targets each quarter"],
+      "benefits_url": "https://icicibank.com/personal-banking/cards/credit-card/adani-icici-credit-card",
+      "source_url": "https://cardadvisor.in/articles/adani-one-icici-bank-platinum-credit-card-review-2026",
+      "verified_on": "2026-10-30"
+    },
+    {
+      "id": "tata_neu_plus_hdfc",
+      "name": "Tata Neu Plus HDFC",
+      "bank": "HDFC Bank",
+      "issuer_sms_names": ["hdfc"],
+      "network": "RuPay",
+      "annual_fee": 499,
+      "fee_note": "Rs 499 + GST",
+      "fee_waiver_spend": 100000,
+      "reward": {
+        "currency": "NeuCoins",
+        "per_amount": 100,
+        "rupee_value": 1,
+        "rounding": "floor",
+        "rates": { "default": 1, "tata_brands": 2, "tata_neu_app": 5, "upi": 1 },
+        "excluded_categories": ["fuel", "rent", "wallet_load", "government", "emi"],
+        "caps": [ { "categories": ["upi"], "max_points": 500, "period": "month", "label": "UPI NeuCoins" } ],
+        "note": "NeuCoins expire after 12 months; 5% on Tata Neu app only when paid with this card (since 1 May 2026); more via NeuPass"
+      },
+      "lounge": [
+        { "type": "domestic", "count": 1, "period": "quarter", "note": "Voucher claimed on HDFC rewards portal" }
+      ],
+      "spend_gate": { "amount": 50000, "window": "calendar_quarter", "unlocks": "on_completion", "note": "Since 10 Jun 2025; voucher claimed on HDFC rewards portal" },
+      "milestones": [],
+      "perks": [],
+      "watch_outs": ["NeuCoins expire after 12 months", "UPI rewards capped at 500 NeuCoins/month"],
+      "benefits_url": "https://www.hdfcbank.com/personal/pay/cards/credit-cards/tata-neu-plus-hdfc-bank-credit-card",
+      "source_url": "https://cardexpress.in/cards/hdfc-tata-neu-plus",
+      "verified_on": "2026-10-30"
+    },
+    {
+      "id": "cred_indusind",
+      "name": "CRED IndusInd",
+      "bank": "IndusInd Bank",
+      "issuer_sms_names": ["indusind"],
+      "network": "RuPay + JCB",
+      "annual_fee": 499,
+      "fee_note": "Rs 499 (check your fee; some issued free)",
+      "fee_waiver_spend": null,
+      "reward": {
+        "currency": "CRED Points",
+        "per_amount": 100,
+        "rupee_value": 0.2,
+        "rounding": "floor",
+        "rates": { "default": 1, "online_shopping": 5, "shopping_partners": 5, "cred": 5, "upi": 5 },
+        "excluded_categories": ["fuel", "rent", "wallet_load", "government"],
+        "caps": [],
+        "note": "Up to 5 CRED Points per Rs 100 on online and CRED spends incl. UPI. Point value is an estimate."
+      },
+      "lounge": [],
+      "spend_gate": null,
+      "milestones": [],
+      "perks": ["1% fuel surcharge waiver", "JCB side useful for some international acceptance"],
+      "watch_outs": ["Points best redeemed inside CRED"],
+      "benefits_url": "https://www.indusind.com/in/en/personal/cards/credit-card/cred-indusind-bank-rupay-credit-card.html",
+      "source_url": "https://www.bankbazaar.com/credit-card/cred-IndusInd-bank-rupay-credit-card.html",
+      "verified_on": "2026-10-30"
+    },
+    {
+      "id": "edge_plus_csb",
+      "name": "Edge+ CSB (Jupiter)",
+      "bank": "CSB Bank",
+      "issuer_sms_names": ["csb", "jupiter", "edge"],
+      "network": "RuPay",
+      "annual_fee": 0,
+      "fee_note": "Lifetime free (current offer)",
+      "fee_waiver_spend": null,
+      "reward": {
+        "currency": "Jewels",
+        "per_amount": 100,
+        "rupee_value": 1,
+        "rounding": "floor",
+        "rates": { "default": 1, "shopping_partners": 10, "travel": 5, "makemytrip": 5 },
+        "excluded_categories": ["fuel", "rent", "wallet_load", "government", "emi"],
+        "caps": [
+          { "categories": ["shopping_partners"], "max_points": 1500, "period": "month", "label": "Shopping Jewels" },
+          { "categories": ["travel", "makemytrip"], "max_points": 500, "period": "month", "label": "Travel Jewels" }
+        ],
+        "note": "High rate on select shopping brands (capped), mid rate on travel, ~1% others. Rates and caps are estimates."
+      },
+      "lounge": [],
+      "spend_gate": null,
+      "milestones": [],
+      "perks": [],
+      "watch_outs": ["Rewards managed in Jupiter app", "Monthly caps"],
+      "benefits_url": "https://jupiter.money/edge-plus-csb-bank-rupay-credit-card/",
+      "source_url": "https://www.siliconindia.com/news/startups/jupiter-partners-with-csb-bank-to-launch-highreward-rupay-credit-card-nid-236524-cid-19.html",
+      "verified_on": "2026-10-30"
+    },
+    {
+      "id": "uni_goldx_bobcard",
+      "name": "Uni GoldX (BOBCARD)",
+      "bank": "BOBCARD",
+      "issuer_sms_names": ["bobcard", "bob", "uni"],
+      "network": "RuPay",
+      "annual_fee": 0,
+      "fee_note": "Lifetime free",
+      "fee_waiver_spend": null,
+      "reward": {
+        "currency": "Rs in 24K gold",
+        "per_amount": 100,
+        "rupee_value": 1,
+        "rounding": "floor",
+        "rates": { "default": 1, "uni_store": 5 },
+        "excluded_categories": ["fuel", "rent", "wallet_load", "government"],
+        "caps": [],
+        "note": "1% back as 24K digital gold; up to 5% via Uni Store vouchers"
+      },
+      "lounge": [],
+      "spend_gate": null,
+      "milestones": [],
+      "perks": ["Zero forex markup"],
+      "watch_outs": ["Gold redeemed via Uni app"],
+      "benefits_url": "https://bobcard.co.in/credit-card-types/uni-goldx",
+      "source_url": "https://bobcard.co.in/credit-card-types/uni-goldx",
+      "verified_on": "2026-10-30"
+    }
+  ]
+}
