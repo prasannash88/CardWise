@@ -49,6 +49,15 @@
         {
           "faceIDPermission": "Unlock CardWise"
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableMinifyInReleaseBuilds": false,
+            "enableShrinkResourcesInReleaseBuilds": false
+          }
+        }
       ]
     ],
     "scheme": "cardwise",
