@@ -1,10 +1,10 @@
 import '../lib/background';
 
 import * as LocalAuthentication from 'expo-local-authentication';
-import { Stack } from 'expo-router';
+import { Stack, type ErrorBoundaryProps } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, View } from 'react-native';
+import { AppState, ScrollView, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Button, H1, T, useTheme } from '../components/ui';
 import { getDb, getSetting } from '../db/db';
@@ -14,6 +14,18 @@ import { setRules, validateRules } from '../lib/rules';
 import { fetchUpdates } from '../lib/updates';
 
 const RELOCK_AFTER_MS = 60_000;
+
+/** Shows render errors on screen instead of closing the app. */
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  return (
+    <ScrollView contentContainerStyle={{ padding: 24, paddingTop: 64, gap: 12 }}>
+      <Text style={{ fontSize: 20, fontWeight: '700' }}>Something went wrong</Text>
+      <Text selectable>{error.message}</Text>
+      <Text selectable style={{ fontSize: 11, color: '#6B7280' }}>{error.stack?.slice(0, 2000)}</Text>
+      <Button title="Try again" onPress={retry} />
+    </ScrollView>
+  );
+}
 
 export default function RootLayout() {
   const t = useTheme();
