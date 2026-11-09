@@ -1,5 +1,13 @@
 {
-  "generated_at": "2026-11-02T09:38:15.215Z",
-  "changes": [],
+  "generated_at": "2026-11-09T09:55:31.980Z",
+  "changes": [
+    {
+      "rule_id": "adani_one_icici_platinum",
+      "url": "https://icicibank.com/personal-banking/cards/credit-card/adani-icici-credit-card",
+      "fetched_on": "2026-11-09",
+      "text_hash": "2860ee9876a9b53a2232ea2556ae857a886e6322f0572cc1f1cbf5736a9fcb2a",
+      "summary": "The official page changed. Open it to review (no API key set for an AI summary)."
+    }
+  ],
   "offers": []
 }
