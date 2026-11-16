@@ -1,6 +1,27 @@
 {
-  "generated_at": "2026-11-09T09:55:31.980Z",
+  "generated_at": "2026-11-16T09:53:48.104Z",
   "changes": [
+    {
+      "rule_id": "cred_indusind",
+      "url": "https://www.indusind.com/in/en/personal/cards/credit-card/cred-indusind-bank-rupay-credit-card.html",
+      "fetched_on": "2026-11-16",
+      "text_hash": "2c9e458bc31ab6be2e250753fc7391815ccf36a284a69db77821baabb8f3ed71",
+      "summary": "The official page changed. Open it to review (no API key set for an AI summary)."
+    },
+    {
+      "rule_id": "tata_neu_plus_hdfc",
+      "url": "https://www.hdfcbank.com/personal/pay/cards/credit-cards/tata-neu-plus-hdfc-bank-credit-card",
+      "fetched_on": "2026-11-16",
+      "text_hash": "c7062da03d1e7fc6639c31a878ff63c89425a00d7685991feac03e4c658c17e1",
+      "summary": "The official page changed. Open it to review (no API key set for an AI summary)."
+    },
+    {
+      "rule_id": "adani_one_icici_platinum",
+      "url": "https://icicibank.com/personal-banking/cards/credit-card/adani-icici-credit-card",
+      "fetched_on": "2026-11-16",
+      "text_hash": "399296a2fef7e24070e51108d41a55667550658987678a38ed05cb6fedcc7864",
+      "summary": "The official page changed. Open it to review (no API key set for an AI summary)."
+    },
     {
       "rule_id": "adani_one_icici_platinum",
       "url": "https://icicibank.com/personal-banking/cards/credit-card/adani-icici-credit-card",
