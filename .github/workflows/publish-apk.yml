@@ -1,0 +1,51 @@
+name: Publish APK to apk-latest branch
+
+# Copies the newest APK onto the apk-latest branch (replaced each time, no history),
+# so it can be fetched with plain git and handed to the phone.
+on:
+  workflow_run:
+    workflows: [Emulator smoke test]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Build run ID whose APK to publish
+        required: true
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Find build run
+        id: run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          id="${{ inputs.run_id }}"
+          if [ -z "$id" ]; then
+            id=$(gh run list -R "$GITHUB_REPOSITORY" -w "Build Android APK" -s success -L 1 --json databaseId --jq '.[0].databaseId')
+          fi
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: CardWise-apk
+          run-id: ${{ steps.run.outputs.id }}
+          github-token: ${{ github.token }}
+          path: out
+
+      - name: Push to apk-latest
+        run: |
+          cd out
+          mv app-release.apk CardWise.apk
+          git init -q -b apk-latest
+          git config user.name "cardwise-ci"
+          git config user.email "cardwise-ci@users.noreply.github.com"
+          git add CardWise.apk
+          git commit -q -m "CardWise APK from build run ${{ steps.run.outputs.id }}"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${GITHUB_REPOSITORY}.git" apk-latest
