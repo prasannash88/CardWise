@@ -50,8 +50,11 @@ jobs:
           git checkout -q --orphan apk-latest
           git rm -rfq .
           git clean -fdxq
+          # Zipped: the universal APK is over GitHub's 100 MB file limit.
           cp "$RUNNER_TEMP"/apk/*.apk CardWise.apk
-          git add CardWise.apk
+          zip -q -9 CardWise.apk.zip CardWise.apk
+          rm CardWise.apk
+          git add CardWise.apk.zip
           git commit -q -m "CardWise APK from build run ${{ steps.run.outputs.id }}"
           if ! git push -f origin apk-latest 2> push.err; then
             echo "::error title=push failed::$(tr '\n' ' ' < push.err)"
