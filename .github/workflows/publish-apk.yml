@@ -32,20 +32,28 @@ jobs:
           fi
           echo "id=$id" >> "$GITHUB_OUTPUT"
 
+      - uses: actions/checkout@v7
+
       - uses: actions/download-artifact@v8
         with:
           name: CardWise-apk
           run-id: ${{ steps.run.outputs.id }}
           github-token: ${{ github.token }}
-          path: out
+          path: ${{ runner.temp }}/apk
 
       - name: Push to apk-latest
         run: |
-          cd out
-          mv app-release.apk CardWise.apk
-          git init -q -b apk-latest
+          set -o pipefail
+          ls -la "$RUNNER_TEMP/apk"
           git config user.name "cardwise-ci"
           git config user.email "cardwise-ci@users.noreply.github.com"
+          git checkout -q --orphan apk-latest
+          git rm -rfq .
+          git clean -fdxq
+          cp "$RUNNER_TEMP"/apk/*.apk CardWise.apk
           git add CardWise.apk
           git commit -q -m "CardWise APK from build run ${{ steps.run.outputs.id }}"
-          git push -f "https://x-access-token:${{ github.token }}@github.com/${GITHUB_REPOSITORY}.git" apk-latest
+          if ! git push -f origin apk-latest 2> push.err; then
+            echo "::error title=push failed::$(tr '\n' ' ' < push.err)"
+            exit 1
+          fi
