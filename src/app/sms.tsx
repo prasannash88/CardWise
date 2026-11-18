@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, View } from 'react-native';
+import { Alert, Linking, View } from 'react-native';
 import { Button, Chip, Field, H2, Panel, Row, Screen, Select, T, Tag } from '../components/ui';
 import { listCards, saveTransaction } from '../db/db';
 import { isSmsReadingAvailable, requestSmsPermission } from '../../modules/sms-reader';
@@ -23,8 +23,17 @@ export default function SmsImport() {
   const scan = async () => {
     setBusy(true);
     try {
-      if (!(await requestSmsPermission())) {
-        Alert.alert('Permission needed', 'Allow SMS access to read bank alerts, or paste a message below.');
+      const perm = await requestSmsPermission();
+      if (perm !== 'granted') {
+        Alert.alert(
+          'SMS access is off',
+          perm === 'blocked'
+            ? 'Android blocks SMS access for apps installed from a file until you allow it:\n\n1. Tap "Open settings" below (App info for CardWise).\n2. Tap ⋮ (top right) → "Allow restricted settings" and confirm.\n3. Tap Permissions → SMS → Allow.\n4. Come back and tap "Scan SMS inbox" again.\n\nIf you don\'t see "Allow restricted settings", go straight to Permissions → SMS.'
+            : 'Allow SMS access to read bank alerts, or paste a message below.',
+          perm === 'blocked'
+            ? [{ text: 'Cancel', style: 'cancel' }, { text: 'Open settings', onPress: () => Linking.openSettings() }]
+            : undefined,
+        );
         return;
       }
       setItems(await scanSms());

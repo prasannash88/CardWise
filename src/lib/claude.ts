@@ -18,8 +18,8 @@ export async function setApiKey(v: string) {
   else await SecureStore.deleteItemAsync(KEY);
 }
 
-async function client(): Promise<Anthropic> {
-  const apiKey = await getApiKey();
+async function client(keyOverride?: string): Promise<Anthropic> {
+  const apiKey = keyOverride ?? (await getApiKey());
   if (!apiKey) throw new Error('Add your Claude API key in Settings first.');
   // The key is the user's own and stays on their phone; the SDK's browser guard doesn't apply.
   return new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
@@ -50,8 +50,8 @@ Rules:
 - Never include full card numbers; only the last 4 digits.`;
 }
 
-async function extract(content: Anthropic.Beta.BetaContentBlockParam[]): Promise<ExtractedStatement> {
-  const c = await client();
+async function extract(content: Anthropic.Beta.BetaContentBlockParam[], keyOverride?: string): Promise<ExtractedStatement> {
+  const c = await client(keyOverride);
   const res = await c.beta.messages.parse({
     model: MODEL,
     max_tokens: 16000,
@@ -73,8 +73,9 @@ export async function extractStatementFromPdf(base64Pdf: string, cardName: strin
   ]);
 }
 
-export async function extractStatementFromText(text: string, cardName: string): Promise<ExtractedStatement> {
-  return extract([{ type: 'text', text: `${instructions(cardName)}\n\n<statement>\n${text}\n</statement>` }]);
+/** `keyOverride` is only for the self-test, which checks the API path with a dummy key. */
+export async function extractStatementFromText(text: string, cardName: string, keyOverride?: string): Promise<ExtractedStatement> {
+  return extract([{ type: 'text', text: `${instructions(cardName)}\n\n<statement>\n${text}\n</statement>` }], keyOverride);
 }
 
 export function friendlyError(e: unknown): string {

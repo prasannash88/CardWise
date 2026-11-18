@@ -15,7 +15,7 @@ export async function exportBackup(): Promise<string> {
   const file = new File(Paths.cache, `cardwise-backup-${todayISO()}.json`);
   if (file.exists) file.delete();
   file.create();
-  file.write(JSON.stringify(payload, null, 2));
+  await file.write(JSON.stringify(payload, null, 2));
   if (await Sharing.isAvailableAsync()) {
     await Sharing.shareAsync(file.uri, { mimeType: 'application/json', dialogTitle: 'Save CardWise backup' });
   }

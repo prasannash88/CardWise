@@ -1,6 +1,9 @@
 import * as DocumentPicker from 'expo-document-picker';
+import { File } from 'expo-file-system';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import * as SecureStore from 'expo-secure-store';
+import { useEffect, useState } from 'react';
+import { extractPdfText, isPdfTextAvailable, PdfPasswordError } from '../../modules/pdf-text';
 import { ActivityIndicator, Alert } from 'react-native';
 import { Button, DateField, Field, H2, Panel, Row, Screen, Select, T, Toggle } from '../components/ui';
 import { isDuplicateTxn, listCards, saveCard, saveStatement, saveTransaction } from '../db/db';
@@ -23,8 +26,17 @@ export default function StatementScreen() {
   const [showPaste, setShowPaste] = useState(false);
   const [header, setHeader] = useState<{ period_start: string; period_end: string; total_due: string; min_due: string; due_date: string } | null>(null);
   const [txns, setTxns] = useState<ReviewTxn[]>([]);
+  const [password, setPassword] = useState('');
+  const [lockedPdf, setLockedPdf] = useState<string | null>(null);
 
   const card = cards?.find((c) => c.id === cardId);
+  const pwdKey = (id: number) => `statement_pwd_${id}`;
+
+  // Statement passwords are kept per card in the phone's secure storage.
+  useEffect(() => {
+    setLockedPdf(null);
+    if (cardId) SecureStore.getItemAsync(pwdKey(cardId)).then((v) => setPassword(v ?? ''));
+  }, [cardId]);
 
   const load = async (ex: ExtractedStatement, c: Card) => {
     if (ex.card_last4 && c.last4 && ex.card_last4 !== c.last4) {
@@ -56,10 +68,35 @@ export default function StatementScreen() {
     }
   };
 
+  /** Unlocks the PDF on the phone and sends only its text to Claude. */
+  const readPdf = async (uri: string, c: Card): Promise<ExtractedStatement> => {
+    let text: string;
+    try {
+      ({ text } = await extractPdfText(uri, password.trim()));
+    } catch (e) {
+      if (e instanceof PdfPasswordError) {
+        setLockedPdf(uri);
+        throw new Error(`${e.message} Type the statement password in the box below and tap "Unlock and read".`);
+      }
+      throw e;
+    }
+    setLockedPdf(null);
+    if (password.trim()) await SecureStore.setItemAsync(pwdKey(c.id), password.trim());
+    // Scanned (image-only) statements have no text layer; send the unlocked file itself.
+    if (text.replace(/\s/g, '').length < 100) return extractStatementFromPdf(await new File(uri).base64(), c.name);
+    return extractStatementFromText(text, c.name);
+  };
+
   const pickPdf = () => run(async (c) => {
-    const res = await DocumentPicker.getDocumentAsync({ type: 'application/pdf', base64: true, copyToCacheDirectory: true });
-    if (res.canceled || !res.assets?.[0]?.base64) throw new Error('No PDF selected.');
-    return extractStatementFromPdf(res.assets[0].base64, c.name);
+    const native = isPdfTextAvailable();
+    const res = await DocumentPicker.getDocumentAsync({ type: 'application/pdf', base64: !native, copyToCacheDirectory: true });
+    if (res.canceled || !res.assets?.length) throw new Error('No PDF selected.');
+    const asset = res.assets[0];
+    if (!native) {
+      if (!asset.base64) throw new Error('Could not read the PDF.');
+      return extractStatementFromPdf(asset.base64, c.name);
+    }
+    return readPdf(asset.uri, c);
   });
 
   const manual = () => {
@@ -115,12 +152,18 @@ export default function StatementScreen() {
         <Select label="Card" value={cardId} onChange={setCardId}
           options={(cards ?? []).filter((c) => !c.is_addon).map((c) => ({ label: c.name, value: c.id }))} />
         <T sub size={12}>
-          The PDF (or text) goes to the Claude API to pull out the totals, due date and spends. Password-protected PDFs: open it with
-          the password, save an unlocked copy, and upload that, or paste the text instead.
+          The statement is unlocked on your phone and only its text goes to the Claude API, which pulls out the totals,
+          due date and spends for you to review.
         </T>
+        {isPdfTextAvailable() && card ? (
+          <Field label="Statement PDF password (if your bank locks it)" value={password} onChangeText={setPassword}
+            secureTextEntry autoCapitalize="none" autoCorrect={false}
+            hint="Check the bank's statement email for the format. Saved securely on this phone for this card; it never leaves the phone." />
+        ) : null}
         {busy ? <ActivityIndicator /> : (
           <>
-            <Button title="Upload statement PDF" onPress={pickPdf} disabled={!card} />
+            {lockedPdf ? <Button title="Unlock and read" onPress={() => run((c) => readPdf(lockedPdf, c))} disabled={!password.trim()} /> : null}
+            <Button title="Upload statement PDF" kind={lockedPdf ? 'secondary' : 'primary'} onPress={pickPdf} disabled={!card} />
             <Button title={showPaste ? 'Hide text box' : 'Paste statement text'} kind="secondary" onPress={() => setShowPaste(!showPaste)} />
             <Button title="Enter manually" kind="secondary" onPress={manual} disabled={!card} />
           </>

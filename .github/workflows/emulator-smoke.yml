@@ -60,4 +60,5 @@ jobs:
           name: emulator-logcat
           path: |
             logcat.txt
+            selftest-logcat.txt
             screen.png
