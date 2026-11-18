@@ -17,6 +17,8 @@ export interface CardRule {
   name: string;
   bank: string;
   issuer_sms_names: string[];
+  /** Substrings of the From address of statement emails, e.g. "hdfcbank". */
+  statement_senders?: string[];
   network: string;
   annual_fee: number;
   fee_note?: string;

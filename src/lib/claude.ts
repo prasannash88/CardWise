@@ -6,6 +6,7 @@ import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod';
 import * as SecureStore from 'expo-secure-store';
 import { z } from 'zod';
 import { getRules } from './rules';
+import type { CardRule } from './types';
 
 const KEY = 'anthropic_api_key';
 const MODEL = 'claude-opus-5-5';
@@ -89,4 +90,50 @@ export function friendlyError(e: unknown): string {
   if (e instanceof Anthropic.APIConnectionError) return 'No connection to the Claude API. Check your internet.';
   if (e instanceof Anthropic.APIError) return `Claude API error ${e.status ?? ''}: ${e.message}`;
   return e instanceof Error ? e.message : String(e);
+}
+
+const TermsChangeSchema = z.object({
+  meaningful: z.boolean().describe('false if only layout, navigation, dates, banners or marketing copy changed'),
+  summary: z.string().describe('Plain-English summary of what changed in fees, rewards, caps, exclusions, lounge access, spend requirements or milestones; 1-4 short sentences'),
+  what_it_means: z.string().describe('What this means for me in practice, one or two sentences'),
+  offers: z.array(z.object({
+    title: z.string(),
+    merchant: z.string(),
+    valid_from: z.string().nullable().describe('YYYY-MM-DD or null'),
+    valid_to: z.string().nullable().describe('YYYY-MM-DD or null'),
+    how_to_use: z.string(),
+  })).describe('Time-limited offers among the added lines, if any'),
+});
+export type TermsChange = z.infer<typeof TermsChangeSchema>;
+
+/** Asks Claude whether changed lines on a card's official page matter to the cardholder. */
+export async function summarizeTermsChange(rule: CardRule, removed: string[], added: string[]): Promise<TermsChange> {
+  const c = await client();
+  const clip = (lines: string[]) => lines.join('\n').slice(0, 12_000);
+  const res = await c.beta.messages.parse({
+    model: MODEL,
+    max_tokens: 16000,
+    betas: ['server-side-fallback-2026-07-01'],
+    fallbacks: 'default',
+    output_config: { effort: 'low', format: betaZodOutputFormat(TermsChangeSchema) },
+    messages: [{
+      role: 'user',
+      content: `The official benefits page for my "${rule.name}" credit card changed. My app currently assumes:
+${JSON.stringify({ reward: rule.reward, lounge: rule.lounge, spend_gate: rule.spend_gate, fee: rule.fee_note, fee_waiver_spend: rule.fee_waiver_spend })}
+
+Lines removed from the page:
+<removed>
+${clip(removed)}
+</removed>
+
+Lines added to the page:
+<added>
+${clip(added)}
+</added>
+
+Did anything change that matters to me (fees, reward rates, caps, exclusions, lounge access, spend requirements, milestones)? Ignore cosmetic changes.`,
+    }],
+  });
+  if (res.stop_reason === 'refusal' || !res.parsed_output) throw new Error(`No summary (stop reason ${res.stop_reason}).`);
+  return res.parsed_output;
 }

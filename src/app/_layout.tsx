@@ -1,7 +1,7 @@
 import '../lib/background';
 
 import * as LocalAuthentication from 'expo-local-authentication';
-import { Stack, type ErrorBoundaryProps } from 'expo-router';
+import { router, Stack, type ErrorBoundaryProps } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, ScrollView, Text, View } from 'react-native';
@@ -11,7 +11,9 @@ import { getDb, getSetting } from '../db/db';
 import { registerBackgroundTask } from '../lib/background';
 import { ensurePermission, refreshNotifications } from '../lib/notifications';
 import { setRules, validateRules } from '../lib/rules';
-import { fetchUpdates } from '../lib/updates';
+import { onSharedPdf, takeSharedPdf, type SharedPdf } from '../../modules/statement-inbox';
+import { autoCheckMail } from '../lib/mailImport';
+import { autoCheckTerms } from '../lib/tncMonitor';
 
 const RELOCK_AFTER_MS = 60_000;
 
@@ -51,7 +53,8 @@ export default function RootLayout() {
       await ensurePermission().catch(() => false);
       await refreshNotifications();
       await registerBackgroundTask();
-      fetchUpdates(true).catch(() => undefined);
+      autoCheckMail().catch(() => undefined);
+      autoCheckTerms().catch(() => undefined);
     })();
   }, [unlock]);
 
@@ -69,6 +72,15 @@ export default function RootLayout() {
     });
     return () => sub.remove();
   }, [unlock]);
+
+  // A statement PDF shared to CardWise (e.g. from Gmail) opens the statement screen.
+  useEffect(() => {
+    if (!ready || locked) return;
+    const open = (p: SharedPdf) => router.push({ pathname: '/statement', params: { fileUri: p.fileUri } });
+    const first = takeSharedPdf();
+    if (first) setTimeout(() => open(first), 300);
+    return onSharedPdf(open);
+  }, [ready, locked]);
 
   if (!ready) return <View style={{ flex: 1, backgroundColor: t.bg }} />;
 
@@ -97,6 +109,8 @@ export default function RootLayout() {
           <Stack.Screen name="sms" options={{ title: 'Spends from SMS' }} />
           <Stack.Screen name="offers" options={{ title: 'Offers' }} />
           <Stack.Screen name="updates" options={{ title: 'Updates' }} />
+          <Stack.Screen name="inbox" options={{ title: 'Statements from email' }} />
+          <Stack.Screen name="selftest" options={{ title: 'Self-test' }} />
           <Stack.Screen name="settings" options={{ title: 'Settings' }} />
         </Stack>
       )}

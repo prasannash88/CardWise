@@ -1,17 +1,20 @@
-// Daily-ish background work: refresh reminders, check spend gates, pull the updates feed.
+// Daily-ish background work: refresh reminders, check spend gates, look for statement emails
+// (every few days) and check the banks' card pages (weekly).
 // Android decides the exact timing; this must be imported at app start so the task is defined.
 
 import * as BackgroundTask from 'expo-background-task';
 import * as TaskManager from 'expo-task-manager';
 import { refreshNotifications } from './notifications';
-import { fetchUpdates } from './updates';
+import { autoCheckMail } from './mailImport';
+import { autoCheckTerms } from './tncMonitor';
 
 const TASK = 'cardwise-daily';
 
 TaskManager.defineTask(TASK, async () => {
   try {
     await refreshNotifications();
-    await fetchUpdates(true).catch(() => undefined);
+    await autoCheckMail().catch(() => undefined);
+    await autoCheckTerms().catch(() => undefined);
     return BackgroundTask.BackgroundTaskResult.Success;
   } catch {
     return BackgroundTask.BackgroundTaskResult.Failed;

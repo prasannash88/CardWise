@@ -4,13 +4,13 @@ import { Button, Empty, Panel, Row, Screen, T, Tag } from '../components/ui';
 import { getSetting, listCards, listSnapshots, markSnapshotsSeen } from '../db/db';
 import { pretty } from '../lib/dates';
 import { ruleById } from '../lib/rules';
-import { fetchUpdates } from '../lib/updates';
+import { checkTerms } from '../lib/tncMonitor';
 import { useLive } from '../lib/useLive';
 
 export default function Updates() {
   const { data } = useLive(async () => ({
     snaps: await listSnapshots(), cards: await listCards(),
-    url: await getSetting<string>('updates_url', ''), last: await getSetting<string | null>('updates_last_fetch', null),
+    last: await getSetting<number | null>('tnc_last_check', null),
   }));
   const [busy, setBusy] = useState(false);
 
@@ -20,10 +20,16 @@ export default function Updates() {
   const refresh = async () => {
     setBusy(true);
     try {
-      const r = await fetchUpdates(false);
-      Alert.alert('Checked', `${r.newChanges} new change(s), ${r.newOffers} new offer(s).`);
+      const r = await checkTerms(false);
+      const lines = [
+        `Checked: ${r.checked.length} page(s).`,
+        r.baseline.length ? `First look (saved for comparison next time): ${r.baseline.join(', ')}.` : '',
+        r.changed.length ? `Changed: ${r.changed.join(', ')}.` : 'No changes that matter.',
+        r.failed.length ? `Could not check: ${r.failed.map((f) => `${f.name} (${f.error})`).join('; ')}.` : '',
+      ].filter(Boolean);
+      Alert.alert('Bank pages checked', lines.join('\n\n'));
     } catch (e) {
-      Alert.alert('Could not fetch updates', e instanceof Error ? e.message : String(e));
+      Alert.alert('Could not check', e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }
@@ -33,22 +39,16 @@ export default function Updates() {
 
   return (
     <Screen>
-      {!data.url ? (
-        <Panel>
-          <T bold>Monitoring is not connected yet</T>
-          <T sub>
-            The weekly monitor (monitor/ folder, run by GitHub Actions) watches each card's official page and publishes
-            updates.json. Paste its raw URL in Settings → Updates feed.
-          </T>
-        </Panel>
-      ) : (
-        <Panel>
-          <Row>
-            <T sub>Last checked {data.last ? new Date(data.last).toLocaleString() : 'never'}</T>
-            <Button small kind="secondary" title={busy ? 'Checking…' : 'Check now'} onPress={refresh} disabled={busy} />
-          </Row>
-        </Panel>
-      )}
+      <Panel>
+        <T sub>
+          Once a week CardWise reads each card's official benefits page. If the text changes, Claude summarises what
+          changed for you and you get a notification.
+        </T>
+        <Row>
+          <T sub>Last checked {data.last ? new Date(data.last).toLocaleString() : 'never'}</T>
+          <Button small kind="secondary" title={busy ? 'Checking…' : 'Check now'} onPress={refresh} disabled={busy} />
+        </Row>
+      </Panel>
       {data.snaps.length === 0 ? <Empty title="No changes detected yet" /> : data.snaps.map((s) => {
         const rule = ruleById(s.rule_id);
         const card = data.cards.find((c) => c.id === s.card_id);

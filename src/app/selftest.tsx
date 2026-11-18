@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { Screen, T } from '../components/ui';
 import { extractPdfText, isPdfTextAvailable, PdfPasswordError } from '../../modules/pdf-text';
 import { isSmsReadingAvailable, readInbox } from '../../modules/sms-reader';
+import { isInboxAvailable, MailAuthError, testMailLogin } from '../../modules/statement-inbox';
 import { getDb } from '../db/db';
 import { extractStatementFromText, friendlyError } from '../lib/claude';
 
@@ -55,6 +56,16 @@ async function runAll(): Promise<Result[]> {
       if (!isSmsReadingAvailable()) throw new Error('SmsReader native module missing');
       const msgs = await readInbox(0, 5);
       return `read ${msgs.length} message(s)`;
+    }),
+    await check('mail-imap', async () => {
+      if (!isInboxAvailable()) throw new Error('StatementInbox native module missing');
+      try {
+        await testMailLogin('cardwise.selftest@gmail.com', 'aaaabbbbccccdddd');
+      } catch (e) {
+        if (e instanceof MailAuthError) return 'reached Gmail IMAP (dummy login rejected as expected)';
+        throw e;
+      }
+      throw new Error('dummy login accepted?');
     }),
     await check('claude-api', async () => {
       try {

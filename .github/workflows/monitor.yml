@@ -1,8 +1,7 @@
 name: Weekly benefits monitor
 
+# The app now checks the bank pages itself (src/lib/tncMonitor.ts); this job only runs on demand.
 on:
-  schedule:
-    - cron: '23 2 * * 1' # Mondays 07:53 IST
   workflow_dispatch:
 
 permissions:

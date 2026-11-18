@@ -1,11 +1,13 @@
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as Notifications from 'expo-notifications';
 import { useEffect, useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Linking } from 'react-native';
 import { Button, Field, H2, KV, Panel, Screen, Select, T, Toggle } from '../components/ui';
 import { getSetting, setSetting, syncAllCardRules } from '../db/db';
 import { exportBackup, importBackup, pickJsonFile } from '../lib/backup';
+import { testMailLogin } from '../../modules/statement-inbox';
 import { getApiKey, setApiKey } from '../lib/claude';
+import { getMailAccount, getMailPassword, saveMailAccount } from '../lib/mailImport';
 import { isValidISO } from '../lib/dates';
 import { DEFAULT_PREFS, ensurePermission, refreshNotifications, type NotifPrefs } from '../lib/notifications';
 import { getBundledRules, getRules, setRules, validateRules } from '../lib/rules';
@@ -18,7 +20,10 @@ export default function Settings() {
   const [lock, setLock] = useState(false);
   const [key, setKey] = useState('');
   const [hasKey, setHasKey] = useState(false);
-  const [feed, setFeed] = useState('');
+  const [mailEmail, setMailEmail] = useState('');
+  const [mailPwd, setMailPwd] = useState('');
+  const [mailHasPwd, setMailHasPwd] = useState(false);
+  const [mailBusy, setMailBusy] = useState(false);
   const [holidays, setHolidays] = useState('');
   const [rulesVersion, setRulesVersion] = useState(getRules().version);
 
@@ -29,7 +34,9 @@ export default function Settings() {
       setTime(`${String(p.hour).padStart(2, '0')}:${String(p.minute).padStart(2, '0')}`);
       setLock(await getSetting('lock_enabled', false));
       setHasKey(!!(await getApiKey()));
-      setFeed(await getSetting('updates_url', ''));
+      const acct = await getMailAccount();
+      setMailEmail(acct.email);
+      setMailHasPwd(acct.hasPassword);
       setHolidays((await getSetting<string[]>('holidays', [])).join(', '));
     })();
   }, []);
@@ -64,6 +71,24 @@ export default function Settings() {
     setHasKey(!!key.trim());
     setKey('');
     Alert.alert('Saved', key.trim() ? 'API key stored in secure storage.' : 'API key removed.');
+  };
+
+  const saveMail = async () => {
+    if (!/^\S+@\S+\.\S+$/.test(mailEmail.trim())) return Alert.alert('Gmail address', 'Enter your full Gmail address.');
+    const pwd = mailPwd.trim() || (await getMailPassword()) || '';
+    if (!pwd) return Alert.alert('App password', 'Paste the 16-letter app password from Google.');
+    setMailBusy(true);
+    try {
+      await testMailLogin(mailEmail.trim(), pwd);
+      await saveMailAccount(mailEmail, mailPwd.trim() ? mailPwd : null);
+      setMailHasPwd(true);
+      setMailPwd('');
+      Alert.alert('Connected', 'Gmail login works. Check for statements now under More → Statements from email.');
+    } catch (e) {
+      Alert.alert('Could not sign in', e instanceof Error ? e.message : String(e));
+    } finally {
+      setMailBusy(false);
+    }
   };
 
   const saveHolidays = async () => {
@@ -155,11 +180,27 @@ export default function Settings() {
         <Button small kind="secondary" title="Reset to built-in rules" onPress={resetRules} />
       </Panel>
 
-      <H2>Updates feed (Phase 4)</H2>
+      <H2>Email statements (Gmail)</H2>
       <Panel>
-        <Field label="updates.json URL" value={feed} onChangeText={setFeed} autoCapitalize="none" autoCorrect={false}
-          placeholder="https://raw.githubusercontent.com/<you>/<repo>/main/monitor/updates.json" />
-        <Button small kind="secondary" title="Save URL" onPress={async () => { await setSetting('updates_url', feed.trim()); Alert.alert('Saved'); }} />
+        <T sub>
+          CardWise checks Gmail every few days for statement emails from your cards' banks and saves the PDFs for you to
+          review. It reads only those emails, never changes or sends mail, and keeps the app password in secure storage.
+        </T>
+        <T sub size={12}>
+          To get an app password: turn on 2-Step Verification for your Google account, then go to
+          myaccount.google.com/apppasswords, create one named "CardWise", and paste the 16 letters here.
+        </T>
+        <Button small kind="secondary" title="Open Google app passwords" onPress={() => Linking.openURL('https://myaccount.google.com/apppasswords')} />
+        <Field label="Gmail address" value={mailEmail} onChangeText={setMailEmail} autoCapitalize="none" autoCorrect={false}
+          keyboardType="email-address" placeholder="you@gmail.com" />
+        <KV k="App password" v={mailHasPwd ? 'Saved in secure storage' : 'Not set'} tone={mailHasPwd ? 'good' : 'warn'} />
+        <Field label={mailHasPwd ? 'Replace app password (leave empty to keep it)' : 'App password'} value={mailPwd} onChangeText={setMailPwd}
+          secureTextEntry autoCapitalize="none" autoCorrect={false} placeholder="xxxx xxxx xxxx xxxx" />
+        <Button small kind="secondary" title={mailBusy ? 'Checking…' : 'Save and test'} disabled={mailBusy} onPress={saveMail} />
+        {mailHasPwd ? <Button small kind="danger" title="Disconnect Gmail" onPress={async () => {
+          await saveMailAccount('', '');
+          setMailEmail(''); setMailHasPwd(false);
+        }} /> : null}
       </Panel>
     </Screen>
   );

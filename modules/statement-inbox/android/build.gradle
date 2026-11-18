@@ -1,0 +1,20 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'expo.modules.statementinbox'
+version = '1.0.0'
+
+android {
+  namespace "expo.modules.statementinbox"
+  defaultConfig {
+    versionCode 1
+    versionName "1.0.0"
+  }
+}
+
+dependencies {
+  implementation 'com.sun.mail:android-mail:1.6.8'
+  implementation 'com.sun.mail:android-activation:1.6.8'
+}

@@ -2,13 +2,14 @@ import * as DocumentPicker from 'expo-document-picker';
 import { File } from 'expo-file-system';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { extractPdfText, isPdfTextAvailable, PdfPasswordError } from '../../modules/pdf-text';
 import { ActivityIndicator, Alert } from 'react-native';
 import { Button, DateField, Field, H2, Panel, Row, Screen, Select, T, Toggle } from '../components/ui';
 import { isDuplicateTxn, listCards, saveCard, saveStatement, saveTransaction } from '../db/db';
 import { diffDays, isValidISO, prettyShort, statementDateIn } from '../lib/dates';
 import { extractStatementFromPdf, extractStatementFromText, friendlyError, getApiKey, type ExtractedStatement } from '../lib/claude';
+import { setInboxStatus } from '../lib/mailImport';
 import { refreshNotifications } from '../lib/notifications';
 import { inr, isExcluded } from '../lib/rewards';
 import { categoryLabel, getRules, ruleForCard } from '../lib/rules';
@@ -18,9 +19,11 @@ import { useLive } from '../lib/useLive';
 interface ReviewTxn { date: string; merchant: string; amount: number; category: string; include: boolean; duplicate: boolean }
 
 export default function StatementScreen() {
-  const params = useLocalSearchParams<{ cardId?: string }>();
+  // fileUri/inboxId come from "Statements from email" or a PDF shared to the app.
+  const params = useLocalSearchParams<{ cardId?: string; fileUri?: string; inboxId?: string }>();
   const { data: cards } = useLive(() => listCards());
   const [cardId, setCardId] = useState<number | null>(params.cardId ? Number(params.cardId) : null);
+  const autoStarted = useRef(false);
   const [busy, setBusy] = useState(false);
   const [pasted, setPasted] = useState('');
   const [showPaste, setShowPaste] = useState(false);
@@ -38,9 +41,18 @@ export default function StatementScreen() {
     if (cardId) SecureStore.getItemAsync(pwdKey(cardId)).then((v) => setPassword(v ?? ''));
   }, [cardId]);
 
-  const load = async (ex: ExtractedStatement, c: Card) => {
+  const load = async (ex: ExtractedStatement, picked: Card) => {
+    let c = picked;
     if (ex.card_last4 && c.last4 && ex.card_last4 !== c.last4) {
-      Alert.alert('Different card?', `The statement shows a card ending ${ex.card_last4}, but ${c.name} ends ${c.last4}. Check before saving.`);
+      // Same bank, other card (e.g. two ICICI cards): switch to the card the statement names.
+      const match = cards?.find((x) => x.last4 === ex.card_last4 && !x.is_addon);
+      if (match) {
+        c = match;
+        setCardId(match.id);
+        Alert.alert('Card matched', `This statement is for ${match.name} (··${match.last4}).`);
+      } else {
+        Alert.alert('Different card?', `The statement shows a card ending ${ex.card_last4}, but ${c.name} ends ${c.last4}. Check before saving.`);
+      }
     }
     setHeader({
       period_start: ex.period_start, period_end: ex.period_end, total_due: String(ex.total_due),
@@ -70,18 +82,29 @@ export default function StatementScreen() {
 
   /** Unlocks the PDF on the phone and sends only its text to Claude. */
   const readPdf = async (uri: string, c: Card): Promise<ExtractedStatement> => {
-    let text: string;
-    try {
-      ({ text } = await extractPdfText(uri, password.trim()));
-    } catch (e) {
-      if (e instanceof PdfPasswordError) {
-        setLockedPdf(uri);
-        throw new Error(`${e.message} Type the statement password in the box below and tap "Unlock and read".`);
+    // Try the typed password, then passwords saved for your other cards (same bank, same format).
+    const saved = await Promise.all((cards ?? []).map((x) => SecureStore.getItemAsync(pwdKey(x.id))));
+    const candidates = [...new Set([password.trim(), ...saved.map((v) => v ?? '')])];
+    let text: string | null = null;
+    let used = '';
+    for (const p of candidates) {
+      try {
+        ({ text } = await extractPdfText(uri, p));
+        used = p;
+        break;
+      } catch (e) {
+        if (!(e instanceof PdfPasswordError)) throw e;
       }
-      throw e;
+    }
+    if (text === null) {
+      setLockedPdf(uri);
+      throw new Error(`This PDF needs a password${password.trim() ? ' (the one typed did not work)' : ''}. Type it in the box below and tap "Unlock and read".`);
     }
     setLockedPdf(null);
-    if (password.trim()) await SecureStore.setItemAsync(pwdKey(c.id), password.trim());
+    if (used) {
+      setPassword(used);
+      await SecureStore.setItemAsync(pwdKey(c.id), used);
+    }
     // Scanned (image-only) statements have no text layer; send the unlocked file itself.
     if (text.replace(/\s/g, '').length < 100) return extractStatementFromPdf(await new File(uri).base64(), c.name);
     return extractStatementFromText(text, c.name);
@@ -98,6 +121,15 @@ export default function StatementScreen() {
     }
     return readPdf(asset.uri, c);
   });
+
+  // Opened with a PDF from email or the share sheet: read it as soon as a card is known.
+  useEffect(() => {
+    if (params.fileUri && card && !autoStarted.current) {
+      autoStarted.current = true;
+      run((c) => readPdf(params.fileUri!, c));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.fileUri, card]);
 
   const manual = () => {
     setHeader({ period_start: '', period_end: '', total_due: '', min_due: '', due_date: '' });
@@ -125,6 +157,7 @@ export default function StatementScreen() {
     const realDay = Number(period_end.slice(8, 10));
     const realGap = diffDays(due_date, period_end);
     const expected = statementDateIn(Number(period_end.slice(0, 4)), Number(period_end.slice(5, 7)), card.statement_day);
+    if (params.inboxId) await setInboxStatus(params.inboxId, 'done');
     const finish = () => { refreshNotifications(); router.back(); };
     if (expected !== period_end || realGap !== card.due_gap_days) {
       Alert.alert(
@@ -155,6 +188,7 @@ export default function StatementScreen() {
           The statement is unlocked on your phone and only its text goes to the Claude API, which pulls out the totals,
           due date and spends for you to review.
         </T>
+        {params.fileUri && !card ? <T tone="warn">Pick which card this statement is for, and CardWise will read it.</T> : null}
         {isPdfTextAvailable() && card ? (
           <Field label="Statement PDF password (if your bank locks it)" value={password} onChangeText={setPassword}
             secureTextEntry autoCapitalize="none" autoCorrect={false}
